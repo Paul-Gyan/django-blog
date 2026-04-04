@@ -1,0 +1,43 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Delete Post{% endblock %}
+
+{% block content %}
+
+<div style="
+        border: 1px solid #fca5a5;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-top: 1rem;
+        max-width: 600px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        background: #fff5f5;
+    ">
+    <h1 style="color: #dc2626;">Delete Post 🗑️</h1>
+    <p>Are you sure you want to delete:</p>
+    <h2 style="color: #1d4ed8;">{{ post.title }}</h2>
+    <p style="color: #6b7280;">This action cannot be undone.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" style="
+                background: #dc2626;
+                color: white;
+                border: none;
+                padding: 0.75rem 2rem;
+                border-radius: 6px;
+                font-size: 1rem;
+                cursor: pointer;
+                margin-right: 1rem;
+            ">
+            Yes, Delete ❌
+        </button>
+        <a href="{% url 'post_detail' post.pk %}" style="
+                color: #3b82f6;
+                text-decoration: none;
+                font-weight: bold;
+            ">Cancel</a>
+    </form>
+</div>
+
+{% endblock %}

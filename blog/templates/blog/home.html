@@ -1,0 +1,31 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+
+<h1>Latest Posts 📝</h1>
+
+{% for post in posts %}
+<div style="
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        ">
+    <h2 style="margin: 0 0 0.5rem 0;">
+        <a href="{% url 'post_detail' post.pk %}" style="color: #1d4ed8; text-decoration: none;">
+            {{ post.title }}
+        </a>
+    </h2>
+    <p style="color: #6b7280; font-size: 0.85rem;">
+        {{ post.date|date:"F j, Y" }}
+    </p>
+    <p>{{ post.content }}</p>
+</div>
+{% empty %}
+<p>No posts yet. Add some from the admin panel!</p>
+{% endfor %}
+
+{% endblock %}

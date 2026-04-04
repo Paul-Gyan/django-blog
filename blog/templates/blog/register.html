@@ -1,0 +1,39 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div style="
+        max-width: 400px;
+        margin: 2rem auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    ">
+    <h1 style="color: #1d4ed8; margin-bottom: 1.5rem;">
+        Create Account 📝
+    </h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" style="
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 0.75rem 2rem;
+                border-radius: 6px;
+                font-size: 1rem;
+                cursor: pointer;
+                width: 100%;
+                margin-top: 1rem;
+            ">Register</button>
+    </form>
+
+    <p style="margin-top: 1rem; text-align: center;">
+        Already have an account?
+        <a href="{% url 'login' %}" style="color: #3b82f6;">Login</a>
+    </p>
+</div>
+{% endblock %}

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
+import dj_database_url
 from pathlib import Path
 
 
@@ -81,12 +82,8 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'blogdb',
-        'USER': 'postgres',
-        'PASSWORD': 'Iloveowus@5280',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': dj_database_url.config(default=os.environ.get('DATABASE_URL', 'postgres:Iloveowus@5280@localhost/blogdb')),
+       
     }
 }
 

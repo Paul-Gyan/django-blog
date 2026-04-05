@@ -80,12 +80,23 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': dj_database_url.config(default=os.environ.get('DATABASE_URL', 'postgresql://postgres:Iloveowus@5280@localhost/blogdb')),
-       
+import sys
+
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=f"postgresql://postgres:Iloveowus@5280@localhost/blogdb"
+        )
+    }
+    
+
 
 
 # Password validation

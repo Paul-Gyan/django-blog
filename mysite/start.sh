@@ -1,2 +1,4 @@
+#!/bin/bash
+sst-e
 python manage.py migrate
-gunicorn mysite.wsgi:application --bind
+gunicorn mysite.wsgi:application --bind 0.0.0.0:8000

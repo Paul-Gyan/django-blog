@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': dj_database_url.config(default=os.environ.get('DATABASE_URL', 'postgres:Iloveowus@5280@localhost/blogdb')),
+        'ENGINE': dj_database_url.config(default=os.environ.get('DATABASE_URL', 'postgresql://postgres:Iloveowus@5280@localhost/blogdb')),
        
     }
 }

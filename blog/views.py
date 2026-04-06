@@ -203,10 +203,16 @@ def api_profile(request, username):
     return Response(serializer.data)
 
 
-@api_view(['PUT'])
+@api_view(['GET', 'PATCH', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_profile_update(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data)
+
+
     serializer = UserProfileSerializer(profile, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()

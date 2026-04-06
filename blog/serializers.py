@@ -35,6 +35,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['id', 'username', 'bio', 'avatar', 'location', 'website']
+        extra_kwargs = {
+            'bio': {'required': False},
+            'avatar': {'required': False},
+            'location': {'required': False},
+            'website': {'required': False}
+        }
+
 
     def get_username(self, obj):
         return obj.user.username

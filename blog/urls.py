@@ -23,6 +23,6 @@ urlpatterns = [
     path('api/posts/<int:pk>/comment/', views.api_comment_create, name='api_comment_create'),
     path('api/comments/<int:pk>/delete/', views.api_comment_delete, name='api_comment_delete'),
     path('api/categories/', views.api_categories, name='api_categories'),
-    path('api/profile/<str:username>/', views.api_profile, name='api_profile'),
     path('api/profile/update/', views.api_profile_update, name='api_profile_update'),
+    path('api/profile/<str:username>/', views.api_profile, name='api_profile'),
 ]

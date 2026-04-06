@@ -10,10 +10,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import (
     PostSerializer, CategorySerializer,
-    CommentSerializer, LikeSerializer, UserProfileSerializer
+    CommentSerializer, LikeSerializer, UserProfileSerializer, StorySerializer
 )
-from .models import Post, Category, Comment, Like, UserProfile
+from .models import Post, Category, Comment, Like, UserProfile, Story, StoryView
 from .forms import PostForm
+from django.utils import timezone
 
 
 # --- Template Views ---
@@ -221,3 +222,59 @@ def api_profile_update(request):
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def api_stories(request):
+    # Only return active non-expired stories
+    stories = Story.objects.filter(
+        expires_at__gt=timezone.now()
+    ).order_by('-created_at')
+    serializer = StorySerializer(stories, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_story_create(request):
+    story = Story(author=request.user)
+    story.text = request.data.get('text', '')
+    story.background_color = request.data.get('background_color', '#1d4ed8')
+
+    if 'image' in request.FILES:
+        story.image = request.FILES['image']
+    if 'video' in request.FILES:
+        story.video = request.FILES['video']
+
+    story.save()
+    serializer = StorySerializer(story)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+def api_story_detail(request, pk):
+    story = get_object_or_404(Story, pk=pk)
+    if story.is_expired():
+        return Response(
+            {'error': 'Story has expired'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    # Track view if user is authenticated
+    if request.user.is_authenticated:
+        StoryView.objects.get_or_create(
+            story=story,
+            viewer=request.user
+        )
+    serializer = StorySerializer(story)
+    return Response(serializer.data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_story_delete(request, pk):
+    story = get_object_or_404(Story, pk=pk)
+    if story.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    story.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

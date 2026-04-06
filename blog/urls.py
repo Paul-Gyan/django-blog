@@ -25,4 +25,9 @@ urlpatterns = [
     path('api/categories/', views.api_categories, name='api_categories'),
     path('api/profile/update/', views.api_profile_update, name='api_profile_update'),
     path('api/profile/<str:username>/', views.api_profile, name='api_profile'),
+    # Story endpoints
+    path('api/stories/', views.api_stories, name='api_stories'),
+    path('api/stories/create/', views.api_story_create, name='api_story_create'),
+    path('api/stories/<int:pk>/', views.api_story_detail, name='api_story_detail'),
+    path('api/stories/<int:pk>/delete/', views.api_story_delete, name='api_story_delete'),
 ]

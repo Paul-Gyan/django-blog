@@ -10,9 +10,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import (
     PostSerializer, CategorySerializer,
-    CommentSerializer, LikeSerializer, UserProfileSerializer, StorySerializer
+    CommentSerializer, LikeSerializer, UserProfileSerializer, StorySerializer,  VideoSerializer, VideoCommentSerializer,
+    ReportSerializer, ReportCommentSerializer, AudioCommentSerializer, AudioSerializer
 )
-from .models import Post, Category, Comment, Like, UserProfile, Story, StoryView
+from .models import (Post, Category, Comment, Like, UserProfile, Story, StoryView, Video, VideoComment, VideoLike,
+    Report, ReportComment, ReportLike, AudioLike, Audio, AudioComment             
+)
+
 from .forms import PostForm
 from django.utils import timezone
 
@@ -85,6 +89,34 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('home')
+
+@api_view(['POST'])
+def api_register(request):
+    username = request.data.get('username')
+    password = request.data.get('password1')
+    password2 = request.data.get('password2')
+
+    if not username or not password:
+        return Response(
+            {'error': 'Username and password required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if password != password2:
+        return Response(
+            {'error': 'Passwords do not match'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {'error': 'Username already exists'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = User.objects.create_user(username=username, password=password)
+    return Response(
+        {'message': 'User created successfully'},
+        status=status.HTTP_201_CREATED
+    )
 
 
 # --- API Views ---
@@ -277,4 +309,291 @@ def api_story_delete(request, pk):
             status=status.HTTP_403_FORBIDDEN
         )
     story.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+# --- Video Views ---
+@api_view(['GET'])
+def api_videos(request):
+    search = request.query_params.get('search', '')
+    videos = Video.objects.all().order_by('-created_at')
+    if search:
+        videos = videos.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search)
+        )
+    serializer = VideoSerializer(videos, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def api_video_detail(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    serializer = VideoSerializer(video)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_video_create(request):
+    video = Video(author=request.user)
+    video.title = request.data.get('title', '')
+    video.description = request.data.get('description', '')
+    video.background_color = request.data.get('background_color', '')
+
+    if 'video_file' in request.FILES:
+        video.video_file = request.FILES['video_file']
+    if 'thumbnail' in request.FILES:
+        video.thumbnail = request.FILES['thumbnail']
+
+    video.save()
+    serializer = VideoSerializer(video)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_video_delete(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    if video.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    video.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_video_like(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    like = VideoLike.objects.filter(video=video, user=request.user)
+    if like.exists():
+        like.delete()
+        return Response({'liked': False, 'total_likes': video.total_likes()})
+    else:
+        VideoLike.objects.create(video=video, user=request.user)
+        return Response({'liked': True, 'total_likes': video.total_likes()})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_video_comment(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    serializer = VideoCommentSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(author=request.user, video=video)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_video_comment_delete(request, pk):
+    comment = get_object_or_404(VideoComment, pk=pk)
+    if comment.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    comment.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+# --- Report Views ---
+@api_view(['GET'])
+def api_reports(request):
+    category = request.query_params.get('category', '')
+    urgency = request.query_params.get('urgency', '')
+    search = request.query_params.get('search', '')
+
+    reports = Report.objects.all().order_by('-created_at')
+
+    if category:
+        reports = reports.filter(category=category)
+    if urgency:
+        reports = reports.filter(urgency=urgency)
+    if search:
+        reports = reports.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(location__icontains=search)
+        )
+
+    serializer = ReportSerializer(reports, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def api_report_detail(request, pk):
+    report = get_object_or_404(Report, pk=pk)
+    report.views += 1
+    report.save()
+    serializer = ReportSerializer(report)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_report_create(request):
+    report = Report(author=request.user)
+    report.title = request.data.get('title', '')
+    report.description = request.data.get('description', '')
+    report.location = request.data.get('location', '')
+    report.category = request.data.get('category', 'other')
+    report.urgency = request.data.get('urgency', 'normal')
+    report.latitude = request.data.get('latitude') or None
+    report.longitude = request.data.get('longitude') or None
+
+    if 'image' in request.FILES:
+        report.image = request.FILES['image']
+    if 'video' in request.FILES:
+        report.video = request.FILES['video']
+
+    report.save()
+    serializer = ReportSerializer(report)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_report_delete(request, pk):
+    report = get_object_or_404(Report, pk=pk)
+    if report.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    report.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_report_like(request, pk):
+    report = get_object_or_404(Report, pk=pk)
+    like = ReportLike.objects.filter(report=report, user=request.user)
+    if like.exists():
+        like.delete()
+        return Response({'liked': False, 'total_likes': report.total_likes()})
+    else:
+        ReportLike.objects.create(report=report, user=request.user)
+        return Response({'liked': True, 'total_likes': report.total_likes()})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_report_comment(request, pk):
+    report = get_object_or_404(Report, pk=pk)
+    serializer = ReportCommentSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(author=request.user, report=report)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_report_comment_delete(request, pk):
+    comment = get_object_or_404(ReportComment, pk=pk)
+    if comment.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    comment.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+# --- Audio Views ---
+@api_view(['GET'])
+def api_audios(request):
+    search = request.query_params.get('search', '')
+    category = request.query_params.get('category', '')
+
+    audios = Audio.objects.all().order_by('-created_at')
+
+    if search:
+        audios = audios.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search)
+        )
+    if category:
+        audios = audios.filter(category=category)
+
+    serializer = AudioSerializer(audios, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def api_audio_detail(request, pk):
+    audio = get_object_or_404(Audio, pk=pk)
+    serializer = AudioSerializer(audio)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_audio_create(request):
+    audio = Audio(author=request.user)
+    audio.title = request.data.get('title', '')
+    audio.description = request.data.get('description', '')
+    audio.category = request.data.get('category', 'music')
+    audio.duration = request.data.get('duration', '')
+
+    if 'audio_file' in request.FILES:
+        audio.audio_file = request.FILES['audio_file']
+    if 'cover_image' in request.FILES:
+        audio.cover_image = request.FILES['cover_image']
+
+    audio.save()
+    serializer = AudioSerializer(audio)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_audio_delete(request, pk):
+    audio = get_object_or_404(Audio, pk=pk)
+    if audio.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    audio.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_audio_like(request, pk):
+    audio = get_object_or_404(Audio, pk=pk)
+    like = AudioLike.objects.filter(audio=audio, user=request.user)
+    if like.exists():
+        like.delete()
+        return Response({'liked': False, 'total_likes': audio.total_likes()})
+    else:
+        AudioLike.objects.create(audio=audio, user=request.user)
+        return Response({'liked': True, 'total_likes': audio.total_likes()})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_audio_comment(request, pk):
+    audio = get_object_or_404(Audio, pk=pk)
+    serializer = AudioCommentSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(author=request.user, audio=audio)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_audio_comment_delete(request, pk):
+    comment = get_object_or_404(AudioComment, pk=pk)
+    if comment.author != request.user:
+        return Response(
+            {'error': 'Not authorized'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    comment.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)

@@ -109,3 +109,166 @@ class StoryView(models.Model):
         return f'{self.viewer.username} viewed {self.story}'
 
 
+class Video(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='videos')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    video_file = models.FileField(upload_to='videos/')
+    thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    tags = TaggableManager(blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def total_likes(self):
+        return self.video_likes.count()
+
+    def total_comments(self):
+        return self.video_comments.count()
+
+
+class VideoLike(models.Model):
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='video_likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('video', 'user')
+
+    def __str__(self):
+        return f'{self.user.username} likes {self.video.title}'
+
+
+class VideoComment(models.Model):
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='video_comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Comment by {self.author.username} on {self.video.title}'
+    
+class Report(models.Model):
+    URGENCY_CHOICES = [
+        ('breaking', '🔴 Breaking'),
+        ('normal', '🟡 Normal'),
+        ('update', '🔵 Update'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('crime', '🚨 Crime'),
+        ('weather', '⛈️ Weather'),
+        ('traffic', '🚗 Traffic'),
+        ('community', '👥 Community'),
+        ('fire', '🔥 Fire'),
+        ('medical', '🏥 Medical'),
+        ('politics', '🏛️ Politics'),
+        ('other', '📌 Other'),
+    ]
+
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    image = models.ImageField(upload_to='reports/images/', null=True, blank=True)
+    video = models.FileField(upload_to='reports/videos/', null=True, blank=True)
+    location = models.CharField(max_length=200, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES, default='normal')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+    views = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.urgency} - {self.title}'
+
+    def total_likes(self):
+        return self.report_likes.count()
+
+    def total_comments(self):
+        return self.report_comments.count()
+
+
+class ReportLike(models.Model):
+    report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name='report_likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('report', 'user')
+
+    def __str__(self):
+        return f'{self.user.username} likes {self.report.title}'
+
+
+class ReportComment(models.Model):
+    report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name='report_comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Comment by {self.author.username} on {self.report.title}'
+    
+class Audio(models.Model):
+    CATEGORY_CHOICES = [
+        ('music', '🎵 Music'),
+        ('podcast', '🎙️ Podcast'),
+        ('voice', '🎤 Voice Note'),
+        ('sermon', '⛪ Sermon'),
+        ('audiobook', '📚 Audiobook'),
+        ('other', '📌 Other'),
+    ]
+
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='audios')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    audio_file = models.FileField(upload_to='audio/')
+    cover_image = models.ImageField(upload_to='audio/covers/', null=True, blank=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='music')
+    created_at = models.DateTimeField(auto_now_add=True)
+    duration = models.CharField(max_length=20, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def total_likes(self):
+        return self.audio_likes.count()
+
+    def total_comments(self):
+        return self.audio_comments.count()
+
+
+class AudioLike(models.Model):
+    audio = models.ForeignKey(Audio, on_delete=models.CASCADE, related_name='audio_likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('audio', 'user')
+
+    def __str__(self):
+        return f'{self.user.username} likes {self.audio.title}'
+
+
+class AudioComment(models.Model):
+    audio = models.ForeignKey(Audio, on_delete=models.CASCADE, related_name='audio_comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Comment by {self.author.username} on {self.audio.title}'
+    

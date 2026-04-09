@@ -175,3 +175,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.TemporaryFileUploadHandler'
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3000',
+]

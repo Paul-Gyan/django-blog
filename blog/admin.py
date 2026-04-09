@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, Category, Comment, Like, UserProfile, Story
+from .models import Post, Category, Comment, Like, UserProfile, Story, Video, VideoLike, VideoComment,Report,ReportLike, ReportComment, Audio, AudioComment, AudioLike
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
@@ -32,3 +32,22 @@ class StoryAdmin(admin.ModelAdmin):
     def get_time_left(self, obj):
         return f'{obj.time_left} hours'
     get_time_left.short_description = 'Time Left'
+
+@admin.register(Video)
+class VideoAdmin(admin.ModelAdmin):
+    list_display = ['title', 'author', 'created_at', 'total_likes', 'total_comments']
+    search_fields = ['title', 'description']
+    list_filter = ['created_at', 'category']
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ['title', 'author', 'category', 'urgency', 'created_at', 'is_verified']
+    list_filter = ['category', 'urgency', 'is_verified']
+    search_fields = ['title', 'description', 'location']
+    list_editable = ['is_verified']
+
+@admin.register(Audio)
+class AudioAdmin(admin.ModelAdmin):
+    list_display = ['title', 'author', 'category', 'created_at', 'total_likes']
+    list_filter = ['category', 'created_at']
+    search_fields = ['title','description']
